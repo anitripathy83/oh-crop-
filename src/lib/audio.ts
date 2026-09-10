@@ -83,10 +83,24 @@ const patterns: Record<SfxName, (out: AudioContext) => void> = {
   },
 }
 
-let muted = false
+function getInitialMuted(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem('ohcrop_muted_v1') === 'true'
+  } catch {
+    return false
+  }
+}
+
+let muted = getInitialMuted()
 
 export function setMuted(next: boolean) {
   muted = next
+  try {
+    localStorage.setItem('ohcrop_muted_v1', String(next))
+  } catch {
+    // ignore
+  }
 }
 
 export function isMuted() {

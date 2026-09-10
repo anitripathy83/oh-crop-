@@ -3,7 +3,8 @@ import type { Challenge, LeaderboardEntry, RoundResult, Screen } from './types'
 import { buildSession } from './lib/session'
 import { getLeaderboard, submitScore, getRank } from './lib/leaderboard'
 import { setMuted, isMuted, unlockAudio, playSfx } from './lib/audio'
-import { useBackgroundMusic } from './hooks/useBackgroundMusic'
+import { useSoundtrack } from './hooks/useSoundtrack'
+import { unlockSoundtrack } from './lib/soundtrack'
 
 import { Landing } from './components/Landing'
 import { NameEntry } from './components/NameEntry'
@@ -22,10 +23,12 @@ const IDLE_TO_ATTRACT_MS = 45000
 const MEMBERSHIP_URL: string | undefined = undefined
 
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false)
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(mq.matches)
     const handler = () => setReduced(mq.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
@@ -40,13 +43,13 @@ export default function App() {
   const [results, setResults] = useState<RoundResult[]>([])
   const [lastEntryId, setLastEntryId] = useState<string | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard())
-  const [muted, setMutedState] = useState(false)
+  const [muted, setMutedState] = useState(() => isMuted())
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [leaderboardOrigin, setLeaderboardOrigin] = useState<Screen>('landing')
   const reducedMotion = usePrefersReducedMotion()
   const idleTimerRef = useRef<number | null>(null)
 
-  useBackgroundMusic(screen !== 'game', muted)
+  useSoundtrack(screen, muted, results)
 
   const refreshLeaderboard = useCallback(() => setLeaderboard(getLeaderboard()), [])
 
@@ -71,6 +74,7 @@ export default function App() {
 
   function goPlay() {
     unlockAudio()
+    unlockSoundtrack()
     setSession(buildSession(ROUNDS))
     setScreen('name')
   }

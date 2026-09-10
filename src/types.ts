@@ -61,3 +61,5 @@ export type Screen =
   | 'results'
   | 'leaderboard'
   | 'join'
+
+export type SoundtrackTrackId = 'menu' | 'gameplay' | 'victory' | 'gameover' | 'theme'
