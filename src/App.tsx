@@ -80,12 +80,16 @@ export default function App() {
   }
 
   function onNameSubmit(name: string) {
+    unlockAudio()
+    unlockSoundtrack()
     setPlayerName(name)
     playSfx('select')
     setScreen('pregame')
   }
 
   function onStartGame() {
+    unlockAudio()
+    unlockSoundtrack()
     playSfx('start')
     setScreen('game')
   }

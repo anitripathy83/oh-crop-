@@ -15,7 +15,7 @@ const BASE_PATH = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`
 
-const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg'] as const
+const AUDIO_EXTENSIONS = ['wav', 'mp3', 'ogg'] as const
 
 const TRACK_CONFIG: Record<SoundtrackTrackId, { loop: boolean; volume: number }> = {
   menu: { loop: true, volume: 0.35 },
@@ -39,7 +39,7 @@ let fadeTimer: number | null = null
 
 /**
  * Resolves the best available audio URL for a requested track ID.
- * Searches across .mp3, .wav, .ogg and falls back to theme if not found.
+ * Searches across .wav, .mp3, .ogg and filters out SPA HTML fallback pages.
  */
 async function resolveTrackUrl(requestedId: SoundtrackTrackId): Promise<string | null> {
   if (resolvedUrlCache.has(requestedId)) {
@@ -51,7 +51,8 @@ async function resolveTrackUrl(requestedId: SoundtrackTrackId): Promise<string |
     const url = `${BASE_PATH}audio/${requestedId}.${ext}`
     try {
       const res = await fetch(url, { method: 'HEAD' })
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || ''
+      if (res.ok && !contentType.includes('text/html')) {
         resolvedUrlCache.set(requestedId, url)
         return url
       }
@@ -64,7 +65,8 @@ async function resolveTrackUrl(requestedId: SoundtrackTrackId): Promise<string |
       const url = `${BASE_PATH}audio/theme.${ext}`
       try {
         const res = await fetch(url, { method: 'HEAD' })
-        if (res.ok) {
+        const contentType = res.headers.get('content-type') || ''
+        if (res.ok && !contentType.includes('text/html')) {
           resolvedUrlCache.set(requestedId, url)
           return url
         }
