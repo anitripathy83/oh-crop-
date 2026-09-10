@@ -40,7 +40,7 @@ export function BrandMark({ brand }: { brand: Brand }) {
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center p-6"
+      className="w-full h-full flex items-center justify-center p-4 sm:p-5"
       style={{ background: brand.bg }}
     >
       {showLogo ? (
@@ -50,7 +50,7 @@ export function BrandMark({ brand }: { brand: Brand }) {
             alt={`${brand.name} logo`}
             draggable={false}
             onError={() => setLogoFailed(true)}
-            className="max-w-[76%] max-h-[76%] w-auto h-auto object-contain select-none"
+            className="max-w-[86%] max-h-[82%] w-full h-full object-contain select-none"
             style={{
               filter: 'none',
             }}

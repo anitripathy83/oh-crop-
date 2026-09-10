@@ -37,9 +37,9 @@ export const BRANDS: Brand[] = [
   { id: 'jacquemus', name: 'Jacquemus', category: 'Luxury / Fashion', difficulty: 'hard', color: '#C9A66B', bg: '#111111', fontFamily: 'serif', letterSpacing: 'wide', shape: 'plain', uppercase: false    , asset: '/assets/logos/jacquemus.svg' },
 
   // Streetwear
-  { id: 'supreme', name: 'Supreme', category: 'Streetwear', difficulty: 'easy', color: '#FFFFFF', bg: '#DA291C', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: false    , asset: '/assets/logos/supreme.svg' },
+  { id: 'supreme', name: 'Supreme', category: 'Streetwear', difficulty: 'easy', color: '#FFFFFF', bg: '#ED1C24', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: false    , asset: '/assets/logos/supreme.svg' },
   { id: 'stussy', name: 'Stüssy', category: 'Streetwear', difficulty: 'medium', color: '#111111', bg: '#F2EFE6', fontFamily: 'script', letterSpacing: 'normal', shape: 'plain', uppercase: false    , asset: '/assets/logos/stussy.svg' },
-  { id: 'palace', name: 'Palace', category: 'Streetwear', difficulty: 'hard', color: '#111111', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'tight', shape: 'diamond', uppercase: false    , asset: '/assets/logos/palace.jpg' },
+  { id: 'palace', name: 'Palace', category: 'Streetwear', difficulty: 'hard', color: '#111111', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'tight', shape: 'diamond', uppercase: false    , asset: '/assets/logos/palace.png' },
   { id: 'bape', name: 'A Bathing Ape', category: 'Streetwear', difficulty: 'medium', color: '#2E7D32', bg: '#111111', fontFamily: 'display', letterSpacing: 'tight', shape: 'box', uppercase: true    , asset: '/assets/logos/bape.png' },
   { id: 'fear-of-god', name: 'Fear of God', category: 'Streetwear', difficulty: 'hard', color: '#111111', bg: '#DCD5C6', fontFamily: 'serif', letterSpacing: 'wider', shape: 'plain', uppercase: true },
   { id: 'carhartt-wip', name: 'Carhartt WIP', category: 'Streetwear', difficulty: 'medium', color: '#5B3A29', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'tight', shape: 'plain', uppercase: false    , asset: '/assets/logos/carhartt-wip.svg' },
@@ -75,7 +75,7 @@ export const BRANDS: Brand[] = [
   { id: 'toblerone', name: 'Toblerone', category: 'Food & Lifestyle', difficulty: 'medium', color: '#FFC72C', bg: '#8A1538', fontFamily: 'serif', letterSpacing: 'wide', shape: 'plain', uppercase: true   , asset: '/assets/logos/toblerone.svg' },
   { id: 'haagen-dazs', name: 'Häagen-Dazs', category: 'Food & Lifestyle', difficulty: 'hard', color: '#8A1538', bg: '#F2EFE6', fontFamily: 'serif', letterSpacing: 'wide', shape: 'plain', uppercase: true    , asset: '/assets/logos/haagen-dazs.svg' },
   { id: 'oreo', name: 'Oreo', category: 'Food & Lifestyle', difficulty: 'easy', color: '#F2EFE6', bg: '#0B3B8C', fontFamily: 'sans', letterSpacing: 'wide', shape: 'roundel', uppercase: true   , asset: '/assets/logos/oreo.svg' },
-  { id: 'kitkat', name: 'KitKat', category: 'Food & Lifestyle', difficulty: 'easy', color: '#F2EFE6', bg: '#B8171F', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: true    , asset: '/assets/logos/kitkat.svg' },
+  { id: 'kitkat', name: 'KitKat', category: 'Food & Lifestyle', difficulty: 'easy', color: '#F2EFE6', bg: '#ED1D24', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: true    , asset: '/assets/logos/kitkat.svg' },
   { id: 'pringles', name: 'Pringles', category: 'Food & Lifestyle', difficulty: 'medium', color: '#B8171F', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'tight', shape: 'plain', uppercase: false    , asset: '/assets/logos/pringles.svg' },
   { id: 'heinz', name: 'Heinz', category: 'Food & Lifestyle', difficulty: 'medium', color: '#F2EFE6', bg: '#8A1538', fontFamily: 'script', letterSpacing: 'normal', shape: 'ribbon', uppercase: false    , asset: '/assets/logos/heinz.svg' },
 
@@ -86,7 +86,7 @@ export const BRANDS: Brand[] = [
   { id: 'spotify', name: 'Spotify', category: 'Tech & Culture', difficulty: 'easy', color: '#111111', bg: '#1DB954', fontFamily: 'sans', letterSpacing: 'tight', shape: 'roundel', uppercase: false     , asset: '/assets/logos/spotify.svg' },
   { id: 'polaroid', name: 'Polaroid', category: 'Tech & Culture', difficulty: 'medium', color: '#111111', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'wide', shape: 'box', uppercase: false   , asset: '/assets/logos/polaroid.svg' },
   { id: 'kodak', name: 'Kodak', category: 'Tech & Culture', difficulty: 'medium', color: '#F2EFE6', bg: '#B8171F', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: true     , asset: '/assets/logos/kodak.svg' },
-  { id: 'gopro', name: 'GoPro', category: 'Tech & Culture', difficulty: 'medium', color: '#111111', bg: '#F2EFE6', fontFamily: 'sans', letterSpacing: 'tight', shape: 'plain', uppercase: false    , asset: '/assets/logos/gopro.svg' },
+  { id: 'gopro', name: 'GoPro', category: 'Tech & Culture', difficulty: 'medium', color: '#111111', bg: '#000000', fontFamily: 'sans', letterSpacing: 'tight', shape: 'plain', uppercase: false    , asset: '/assets/logos/gopro.svg' },
   { id: 'jbl', name: 'JBL', category: 'Tech & Culture', difficulty: 'hard', color: '#F2EFE6', bg: '#F58220', fontFamily: 'sans', letterSpacing: 'tight', shape: 'box', uppercase: true     , asset: '/assets/logos/jbl.svg' },
 
   // Culture & Icons

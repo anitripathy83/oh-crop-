@@ -91,7 +91,10 @@ export function LogoReveal({ brand, revealMs, running, revealed, onProgress, red
   const noiseVisible = !revealed && progress < 0.4
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div
+      className="relative w-full h-full overflow-hidden"
+      style={{ background: brand.bg }}
+    >
       <div
         className="absolute inset-0 transition-none"
         style={{
