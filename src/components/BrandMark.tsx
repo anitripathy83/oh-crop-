@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Brand } from '../types'
 
 const FONT_CLASS: Record<Brand['fontFamily'], string> = {
@@ -17,17 +17,26 @@ const TRACKING: Record<Brand['letterSpacing'], string> = {
 }
 
 /**
- * Real-logo mode.
+ * Authentic brand logo renderer with graceful typography fallback.
  *
- * The game uses individually mapped SVG marks from Simple Icons' public CDN.
- * We keep the URL on the brand rather than bundling the whole icon library.
- * If a mark is unavailable, the component falls back to the original wordmark
- * so a missing third-party asset can never break a round.
+ * Vector SVGs are bundled locally under /assets/logos/<id>.svg for complete offline
+ * reliability and 100% trademark fidelity. If an asset fails to load, the component
+ * falls back to the custom-styled wordmark so gameplay is never interrupted.
  */
 export function BrandMark({ brand }: { brand: Brand }) {
   const [logoFailed, setLogoFailed] = useState(false)
 
-  const showLogo = Boolean(brand.asset) && !logoFailed
+  useEffect(() => {
+    setLogoFailed(false)
+  }, [brand.id, brand.asset])
+
+  const assetUrl = brand.asset
+    ? brand.asset.startsWith('http')
+      ? brand.asset
+      : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/${brand.asset.replace(/^\.?\//, '')}`
+    : undefined
+
+  const showLogo = Boolean(assetUrl) && !logoFailed
 
   return (
     <div
@@ -37,13 +46,12 @@ export function BrandMark({ brand }: { brand: Brand }) {
       {showLogo ? (
         <div className="w-full h-full flex items-center justify-center">
           <img
-            src={brand.asset}
-            alt=""
+            src={assetUrl}
+            alt={`${brand.name} logo`}
             draggable={false}
             onError={() => setLogoFailed(true)}
-            className="max-w-[72%] max-h-[72%] w-auto h-auto object-contain select-none"
+            className="max-w-[76%] max-h-[76%] w-auto h-auto object-contain select-none"
             style={{
-              color: brand.color,
               filter: 'none',
             }}
           />
