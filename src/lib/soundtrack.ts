@@ -154,7 +154,7 @@ export async function playSoundtrack(trackId: SoundtrackTrackId): Promise<void> 
   const config = TRACK_CONFIG[trackId]
   const audio = new Audio(resolvedUrl)
   audio.loop = config.loop
-  audio.volume = 0
+  audio.volume = isMuted ? 0 : config.volume
   audio.muted = isMuted
 
   currentTrackId = trackId
@@ -167,10 +167,9 @@ export async function playSoundtrack(trackId: SoundtrackTrackId): Promise<void> 
       playPromise
         .then(() => {
           isUnlocked = true
-          rampVolume(audio, config.volume, 200)
         })
         .catch(() => {
-          // Autoplay blocked: wait for user interaction to unlock
+          // Autoplay blocked by browser policy: will unlock on first user gesture
           isUnlocked = false
         })
     }
@@ -217,11 +216,15 @@ export function setSoundtrackMuted(muted: boolean): void {
  * Unlocks audio playback on user gesture (click/tap/keypress) if autoplay was blocked.
  */
 export function unlockSoundtrack(): void {
-  if (isUnlocked) return
+  if (isUnlocked && currentAudio && !currentAudio.paused) return
   isUnlocked = true
 
-  if (currentAudio && !isMuted && currentAudio.paused) {
-    currentAudio.play().catch(() => {})
+  if (currentAudio && !isMuted) {
+    const targetVol = currentTrackId ? TRACK_CONFIG[currentTrackId].volume : 0.35
+    currentAudio.volume = targetVol
+    if (currentAudio.paused) {
+      currentAudio.play().catch(() => {})
+    }
   }
 }
 
