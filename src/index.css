@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Press Start 2P", monospace;
+  --font-body: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-ink: #0E1116;
+  --color-ink-2: #171B22;
+  --color-mat: #16261F;
+  --color-paper: #F2EFE6;
+  --color-crime: #FF4F64;
+  --color-crime-dark: #C4283C;
+  --color-xp: #FFC93C;
+  --color-grass: #6FCB4A;
+  --color-line: #2A313B;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-ui {
+  font-family: var(--font-mono);
+}
+
+/* Cutting-mat grid backdrop */
+.bg-cutting-mat {
+  background-color: var(--color-ink);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 16px 16px, 16px 16px, 80px 80px, 80px 80px;
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+}
+
+/* Crop-mark corner brackets, used instead of rounded-card+shadow */
+.crop-frame {
+  position: relative;
+}
+.crop-frame::before,
+.crop-frame::after,
+.crop-frame > .crop-tl,
+.crop-frame > .crop-tr,
+.crop-frame > .crop-bl,
+.crop-frame > .crop-br {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: currentColor;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.crop-frame::before {
+  top: -9px;
+  left: -9px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+.crop-frame::after {
+  top: -9px;
+  right: -9px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+}
+.crop-frame > .crop-bl {
+  bottom: -9px;
+  left: -9px;
+  border-bottom: 2px solid;
+  border-left: 2px solid;
+}
+.crop-frame > .crop-br {
+  bottom: -9px;
+  right: -9px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+.pixel-border {
+  box-shadow:
+    0 0 0 2px var(--color-ink),
+    0 0 0 4px currentColor;
+}
+
+.pixel-btn {
+  image-rendering: pixelated;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+  box-shadow: 0 4px 0 0 rgba(0,0,0,0.55);
+}
+.pixel-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 rgba(0,0,0,0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+::selection {
+  background: var(--color-crime);
+  color: var(--color-ink);
+}
+
+/* visible focus states for accessibility */
+button:focus-visible, input:focus-visible, a:focus-visible {
+  outline: 3px solid var(--color-xp);
+  outline-offset: 3px;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float-y 3.2s ease-in-out infinite;
+}
+
+@keyframes noise-shift {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(-2%, 1%); }
+  50% { transform: translate(1%, -2%); }
+  75% { transform: translate(-1%, -1%); }
+  100% { transform: translate(0,0); }
+}
+.animate-noise {
+  animation: noise-shift 0.4s steps(4) infinite;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(140px) rotate(340deg); opacity: 0; }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop-in 260ms ease-out;
+}
+
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake-x 340ms ease-in-out;
+}
