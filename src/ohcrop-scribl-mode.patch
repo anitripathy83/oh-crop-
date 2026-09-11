@@ -1,0 +1,554 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 2d341cc..25697d8 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -20,7 +20,7 @@ import { SoundToggle } from './components/SoundToggle'
+ const ROUNDS = 10
+ const IDLE_TO_ATTRACT_MS = 45000
+ // Set this once the club has a sign-up link/form ready.
+-const MEMBERSHIP_URL: string | undefined = undefined
++const MEMBERSHIP_URL: string | undefined = 'https://tr.ee/Yhk9yIxqgG'
+ 
+ function usePrefersReducedMotion() {
+   const [reduced, setReduced] = useState(() => {
+diff --git a/src/components/FeedbackToast.tsx b/src/components/FeedbackToast.tsx
+index c49fde3..3e12776 100644
+--- a/src/components/FeedbackToast.tsx
++++ b/src/components/FeedbackToast.tsx
+@@ -15,16 +15,20 @@ export function pickCrimeLine(): string {
+   return CRIME_LINES[Math.floor(Math.random() * CRIME_LINES.length)]
+ }
+ 
++/**
++ * Renders as a bottom banner that slides/fades in over the LOWER edge of the reveal
++ * box, rather than a centered overlay — so it never sits directly on top of the logo
++ * mark itself (which is centered in the same box). Kept out of the flow with
++ * `pointer-events-none` so it never blocks a click on the reveal area.
++ */
+ export function FeedbackToast({ kind, message }: FeedbackToastProps) {
+   if (!kind) return null
+ 
+   if (kind === 'perfect') {
+     return (
+-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+-        <div className="animate-pop text-center">
+-          <p className="font-display text-xl sm:text-3xl text-[var(--color-xp)] drop-shadow-[0_0_12px_rgba(255,201,60,0.6)]">
+-            ✨ PERFECT CROP ✨
+-          </p>
++      <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none z-20 p-2">
++        <div className="animate-pop text-center bg-[var(--color-ink)]/85 border-2 border-[var(--color-xp)] px-5 py-2 shadow-[0_0_18px_rgba(255,201,60,0.55)]">
++          <p className="font-display text-sm sm:text-lg text-[var(--color-xp)]">✨ PERFECT CROP ✨</p>
+         </div>
+       </div>
+     )
+@@ -32,22 +36,22 @@ export function FeedbackToast({ kind, message }: FeedbackToastProps) {
+ 
+   if (kind === 'correct') {
+     return (
+-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+-        <p className="animate-pop font-display text-lg sm:text-2xl text-[var(--color-grass)]">
+-          NICE EYE.
+-        </p>
++      <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none z-20 p-2">
++        <div className="animate-pop bg-[var(--color-ink)]/85 border-2 border-[var(--color-grass)] px-5 py-2">
++          <p className="font-display text-sm sm:text-lg text-[var(--color-grass)]">NICE EYE.</p>
++        </div>
+       </div>
+     )
+   }
+ 
+   if (kind === 'wrong' || kind === 'timeout') {
+     return (
+-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+-        <div className="animate-shake text-center bg-[var(--color-ink)]/90 px-6 py-4 border-2 border-[var(--color-crime)]">
+-          <p className="font-display text-sm sm:text-lg text-[var(--color-crime)]">
+-            🚨 {kind === 'timeout' ? 'OH CROP! TIME\'S UP' : 'DESIGN CRIME DETECTED'}
++      <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none z-20 p-2">
++        <div className="animate-shake text-center bg-[var(--color-ink)]/90 px-5 py-3 border-2 border-[var(--color-crime)] max-w-[92%]">
++          <p className="font-display text-xs sm:text-base text-[var(--color-crime)]">
++            🚨 {kind === 'timeout' ? "OH CROP! TIME'S UP" : 'DESIGN CRIME DETECTED'}
+           </p>
+-          <p className="font-mono-ui text-xs sm:text-sm mt-2 text-[var(--color-paper)]/80">{message}</p>
++          {message && <p className="font-mono-ui text-[10px] sm:text-sm mt-1 text-[var(--color-paper)]/80">{message}</p>}
+         </div>
+       </div>
+     )
+diff --git a/src/components/GameScreen.tsx b/src/components/GameScreen.tsx
+index 791e242..3eb9d07 100644
+--- a/src/components/GameScreen.tsx
++++ b/src/components/GameScreen.tsx
+@@ -1,14 +1,17 @@
+ import { useEffect, useMemo, useRef, useState } from 'react'
+-import type { Brand, Challenge, RoundResult } from '../types'
++import type { Challenge, RoundResult } from '../types'
+ import { GameHUD } from './GameHUD'
+ import { LogoReveal } from './LogoReveal'
+ import { FeedbackToast, pickCrimeLine } from './FeedbackToast'
+ import { PixelConfetti } from './PixelConfetti'
++import { GuessBlanks } from './GuessBlanks'
++import { GuessInput } from './GuessInput'
+ import { difficultyTiming } from '../lib/session'
+-import { computeScore } from '../lib/scoring'
++import { computeHintScore } from '../lib/scoring'
++import { buildSlots, buildHintOrder, hintDelayMs, isCorrectGuess } from '../lib/hints'
+ import { playSfx } from '../lib/audio'
+ 
+-type AnswerState = 'idle' | 'correct' | 'wrong' | 'timeout'
++type AnswerState = 'idle' | 'correct' | 'timeout'
+ 
+ export function GameScreen({
+   playerName,
+@@ -25,38 +28,63 @@ export function GameScreen({
+   const [xp, setXp] = useState(0)
+   const [streak, setStreak] = useState(0)
+   const [answerState, setAnswerState] = useState<AnswerState>('idle')
+-  const [selectedId, setSelectedId] = useState<string | null>(null)
+   const [timeFraction, setTimeFraction] = useState(1)
+   const [running, setRunning] = useState(true)
+   const [revealed, setRevealed] = useState(false)
+   const [confettiKey, setConfettiKey] = useState(0)
+   const [crimeLine, setCrimeLine] = useState('')
++  const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set())
++  const [wrongPulse, setWrongPulse] = useState(0)
++  const [wrongLine, setWrongLine] = useState('')
+ 
+   const resultsRef = useRef<RoundResult[]>([])
+   const roundStartRef = useRef<number>(performance.now())
+   const timeoutHandleRef = useRef<number | null>(null)
++  const hintHandlesRef = useRef<number[]>([])
+ 
+   const challenge = challenges[roundIdx]
+   const { revealMs, label: difficultyLabel } = difficultyTiming(challenge.brand.difficulty)
+ 
++  const slots = useMemo(() => buildSlots(challenge.brand.name), [challenge.brand.id])
++  const totalGuessable = useMemo(() => slots.filter((s) => s.guessable).length, [slots])
++
++  function clearAllTimers() {
++    if (timeoutHandleRef.current) window.clearTimeout(timeoutHandleRef.current)
++    hintHandlesRef.current.forEach((h) => window.clearTimeout(h))
++    hintHandlesRef.current = []
++  }
++
+   useEffect(() => {
+     // reset per-round state
+     setAnswerState('idle')
+-    setSelectedId(null)
+     setRevealed(false)
+     setRunning(true)
+     setTimeFraction(1)
++    setRevealedIndices(new Set())
+     roundStartRef.current = performance.now()
+     playSfx(roundIdx === 0 ? 'start' : 'tick')
+ 
+-    if (timeoutHandleRef.current) window.clearTimeout(timeoutHandleRef.current)
++    clearAllTimers()
++
++    const hintOrder = buildHintOrder(slots)
++    hintOrder.forEach((slotIndex, hintIdx) => {
++      const delay = hintDelayMs(hintIdx, hintOrder.length, revealMs)
++      const handle = window.setTimeout(() => {
++        setRevealedIndices((prev) => {
++          const next = new Set(prev)
++          next.add(slotIndex)
++          return next
++        })
++        playSfx('tick')
++      }, delay)
++      hintHandlesRef.current.push(handle)
++    })
++
+     timeoutHandleRef.current = window.setTimeout(() => {
+       handleTimeout()
+     }, revealMs)
+ 
+-    return () => {
+-      if (timeoutHandleRef.current) window.clearTimeout(timeoutHandleRef.current)
+-    }
++    return clearAllTimers
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [roundIdx])
+ 
+@@ -77,8 +105,10 @@ export function GameScreen({
+   }
+ 
+   function handleTimeout() {
++    clearAllTimers()
+     setRunning(false)
+     setRevealed(true)
++    setRevealedIndices(new Set(slots.map((_, i) => i)))
+     setAnswerState('timeout')
+     setStreak(0)
+     playSfx('crime')
+@@ -95,57 +125,48 @@ export function GameScreen({
+     window.setTimeout(advance, 1800)
+   }
+ 
+-  function handleAnswer(brand: Brand) {
++  function handleGuess(value: string) {
+     if (answerState !== 'idle') return
+-    if (timeoutHandleRef.current) window.clearTimeout(timeoutHandleRef.current)
+ 
++    if (!isCorrectGuess(value, challenge.brand.name)) {
++      setWrongPulse((k) => k + 1)
++      setWrongLine(pickCrimeLine())
++      playSfx('wrong')
++      return
++    }
++
++    clearAllTimers()
+     const answerMs = performance.now() - roundStartRef.current
+-    const correct = brand.id === challenge.brand.id
+-    setSelectedId(brand.id)
++    const hiddenLettersAtGuess = totalGuessable - revealedIndices.size
+     setRunning(false)
+     setRevealed(true)
++    setRevealedIndices(new Set(slots.map((_, i) => i)))
+ 
+-    if (correct) {
+-      const { xp: gained, perfectCrop } = computeScore({
+-        correct: true,
+-        answerMs,
+-        revealMs,
+-        streakBeforeThisRound: streak,
+-      })
+-      setXp((x) => x + gained)
+-      setStreak((s) => s + 1)
+-      setAnswerState('correct')
+-      if (perfectCrop) {
+-        playSfx('perfect')
+-        setConfettiKey((k) => k + 1)
+-      } else {
+-        playSfx('correct')
+-      }
+-      if (streak > 0 && streak % 3 === 0) playSfx('streak')
+-      commitResult({
+-        brandId: challenge.brand.id,
+-        brandName: challenge.brand.name,
+-        correct: true,
+-        timedOut: false,
+-        answerMs,
+-        xp: gained,
+-        perfectCrop,
+-      })
++    const { xp: gained, perfectCrop } = computeHintScore({
++      correct: true,
++      hiddenLettersAtGuess,
++      totalGuessableLetters: totalGuessable,
++      streakBeforeThisRound: streak,
++    })
++    setXp((x) => x + gained)
++    setStreak((s) => s + 1)
++    setAnswerState('correct')
++    if (perfectCrop) {
++      playSfx('perfect')
++      setConfettiKey((k) => k + 1)
+     } else {
+-      setStreak(0)
+-      setAnswerState('wrong')
+-      setCrimeLine(pickCrimeLine())
+-      playSfx('crime')
+-      commitResult({
+-        brandId: challenge.brand.id,
+-        brandName: challenge.brand.name,
+-        correct: false,
+-        timedOut: false,
+-        answerMs,
+-        xp: 0,
+-        perfectCrop: false,
+-      })
++      playSfx('correct')
+     }
++    if (streak > 0 && streak % 3 === 0) playSfx('streak')
++    commitResult({
++      brandId: challenge.brand.id,
++      brandName: challenge.brand.name,
++      correct: true,
++      timedOut: false,
++      answerMs,
++      xp: gained,
++      perfectCrop,
++    })
+ 
+     window.setTimeout(advance, 1800)
+   }
+@@ -181,35 +202,21 @@ export function GameScreen({
+             onProgress={handleProgress}
+             reducedMotion={reducedMotion}
+           />
+-          <FeedbackToast kind={feedbackKind} message={feedbackKind === 'wrong' || feedbackKind === 'timeout' ? crimeLine : undefined} />
++          <FeedbackToast kind={feedbackKind} message={feedbackKind === 'timeout' ? crimeLine : undefined} />
+           {feedbackKind === 'perfect' && <PixelConfetti activeKey={confettiKey} />}
+         </div>
+ 
+-        <div className="w-full max-w-sm">
+-          <p className="font-mono-ui text-[10px] tracking-[0.2em] text-center text-[var(--color-paper)]/50 mb-3">
++        <div className="w-full max-w-sm flex flex-col items-center gap-4">
++          <p className="font-mono-ui text-[10px] tracking-[0.2em] text-center text-[var(--color-paper)]/50">
+             WHAT BRAND IS THIS?
+           </p>
+-          <div className="grid grid-cols-2 gap-3">
+-            {challenge.options.map((opt) => {
+-              const isSelected = selectedId === opt.id
+-              const isCorrectOpt = revealed && opt.id === challenge.brand.id
+-              const isWrongSelected = revealed && isSelected && opt.id !== challenge.brand.id
+-              return (
+-                <button
+-                  key={opt.id}
+-                  onClick={() => handleAnswer(opt)}
+-                  disabled={answerState !== 'idle'}
+-                  className={`font-display text-[10px] sm:text-xs px-3 py-4 border-2 uppercase transition-colors
+-                    ${isCorrectOpt ? 'bg-[var(--color-grass)] border-[var(--color-grass)] text-[var(--color-ink)]' : ''}
+-                    ${isWrongSelected ? 'bg-[var(--color-crime)] border-[var(--color-crime)] text-[var(--color-ink)]' : ''}
+-                    ${!isCorrectOpt && !isWrongSelected ? 'bg-[var(--color-ink-2)] border-[var(--color-line)] text-[var(--color-paper)] hover:border-[var(--color-xp)]' : ''}
+-                    disabled:cursor-default`}
+-                >
+-                  {opt.name}
+-                </button>
+-              )
+-            })}
+-          </div>
++          <GuessBlanks slots={slots} revealedIndices={revealedIndices} />
++          <GuessInput disabled={answerState !== 'idle'} shakeKey={wrongPulse} onSubmit={handleGuess} />
++          {wrongPulse > 0 && answerState === 'idle' && (
++            <p key={wrongPulse} className="animate-pop font-mono-ui text-[10px] text-[var(--color-crime)]/80 -mt-2">
++              ❌ {wrongLine}
++            </p>
++          )}
+         </div>
+       </div>
+     </div>
+diff --git a/src/components/GuessBlanks.tsx b/src/components/GuessBlanks.tsx
+new file mode 100644
+index 0000000..4530a2e
+--- /dev/null
++++ b/src/components/GuessBlanks.tsx
+@@ -0,0 +1,29 @@
++import type { LetterSlot } from '../lib/hints'
++
++export function GuessBlanks({ slots, revealedIndices }: { slots: LetterSlot[]; revealedIndices: Set<number> }) {
++  return (
++    <div className="flex flex-wrap items-center justify-center gap-1.5">
++      {slots.map((slot, i) => {
++        if (!slot.guessable) {
++          // spaces and punctuation always show, as thin visual separators
++          return (
++            <span key={i} className="font-display text-sm text-[var(--color-paper)]/40 px-0.5">
++              {slot.char === ' ' ? '\u00A0' : slot.char}
++            </span>
++          )
++        }
++        const shown = revealedIndices.has(i)
++        return (
++          <span
++            key={i}
++            className={`w-6 h-8 sm:w-7 sm:h-9 flex items-center justify-center font-display text-sm sm:text-base border-b-4 transition-colors ${
++              shown ? 'text-[var(--color-xp)] border-[var(--color-xp)]' : 'text-transparent border-[var(--color-line)]'
++            }`}
++          >
++            {shown ? slot.char.toUpperCase() : '_'}
++          </span>
++        )
++      })}
++    </div>
++  )
++}
+diff --git a/src/components/GuessInput.tsx b/src/components/GuessInput.tsx
+new file mode 100644
+index 0000000..b0d4e63
+--- /dev/null
++++ b/src/components/GuessInput.tsx
+@@ -0,0 +1,46 @@
++import { useEffect, useRef, useState } from 'react'
++import { PixelButton } from './PixelButton'
++
++export function GuessInput({
++  disabled,
++  shakeKey,
++  onSubmit,
++}: {
++  disabled: boolean
++  shakeKey: number
++  onSubmit: (value: string) => void
++}) {
++  const [value, setValue] = useState('')
++  const inputRef = useRef<HTMLInputElement>(null)
++
++  useEffect(() => {
++    if (!disabled) inputRef.current?.focus()
++  }, [disabled])
++
++  function submit() {
++    if (disabled || value.trim().length === 0) return
++    onSubmit(value)
++    setValue('')
++  }
++
++  return (
++    <div key={shakeKey} className={`flex gap-2 w-full ${shakeKey > 0 ? 'animate-shake' : ''}`}>
++      <input
++        ref={inputRef}
++        value={value}
++        disabled={disabled}
++        onChange={(e) => setValue(e.target.value)}
++        onKeyDown={(e) => {
++          if (e.key === 'Enter') submit()
++        }}
++        placeholder="TYPE THE BRAND NAME"
++        autoComplete="off"
++        autoCapitalize="characters"
++        className="flex-1 min-w-0 bg-[var(--color-ink-2)] border-2 border-[var(--color-line)] focus:border-[var(--color-xp)] outline-none px-4 py-3 font-mono-ui text-sm text-[var(--color-paper)] placeholder:text-[var(--color-paper)]/30 uppercase disabled:opacity-50"
++      />
++      <PixelButton onClick={submit} disabled={disabled || value.trim().length === 0}>
++        Guess
++      </PixelButton>
++    </div>
++  )
++}
+diff --git a/src/components/JoinScreen.tsx b/src/components/JoinScreen.tsx
+index 2b40982..8109096 100644
+--- a/src/components/JoinScreen.tsx
++++ b/src/components/JoinScreen.tsx
+@@ -9,10 +9,20 @@ export function JoinScreen({ onBack, joinUrl }: { onBack: () => void; joinUrl?:
+           <p className="font-display text-sm sm:text-lg text-[var(--color-paper)]">THINK YOU CAN DO BETTER?</p>
+           <p className="font-display text-lg sm:text-2xl mt-4 text-[var(--color-crime)]">COME BUILD WITH US.</p>
+ 
+-          <div className="mt-8 border-2 border-dashed border-[var(--color-line)] py-8 flex flex-col items-center gap-2">
+-            <div className="w-28 h-28 bg-[var(--color-paper)] flex items-center justify-center">
+-              <span className="font-mono-ui text-[10px] text-[var(--color-ink)]">QR CODE</span>
+-            </div>
++          <div className="mt-8 border-2 border-dashed border-[var(--color-line)] py-6 flex flex-col items-center gap-2">
++            {joinUrl ? (
++              <img
++                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`}
++                alt="QR code to join Oh Crop!"
++                width={176}
++                height={176}
++                className="bg-[var(--color-paper)] p-2"
++              />
++            ) : (
++              <div className="w-28 h-28 bg-[var(--color-paper)] flex items-center justify-center">
++                <span className="font-mono-ui text-[10px] text-[var(--color-ink)]">QR CODE</span>
++              </div>
++            )}
+             <p className="font-mono-ui text-[10px] text-[var(--color-paper)]/50">SCAN TO JOIN</p>
+           </div>
+ 
+diff --git a/src/components/LogoReveal.tsx b/src/components/LogoReveal.tsx
+index 21b4e2e..8516d6a 100644
+--- a/src/components/LogoReveal.tsx
++++ b/src/components/LogoReveal.tsx
+@@ -13,9 +13,9 @@ interface Keyframe {
+ }
+ 
+ const KEYFRAMES: Keyframe[] = [
+-  { t: 0.0, blur: 18, crop: 30, scale: 1.3, rotate: 7, skew: 10, opacity: 0.4 },
+-  { t: 0.3, blur: 12, crop: 20, scale: 1.2, rotate: 5, skew: 7, opacity: 0.65 },
+-  { t: 0.6, blur: 5, crop: 10, scale: 1.08, rotate: 2, skew: 3, opacity: 0.85 },
++  { t: 0.0, blur: 22, crop: 42, scale: 1.85, rotate: 9, skew: 13, opacity: 0.55 },
++  { t: 0.35, blur: 14, crop: 30, scale: 1.55, rotate: 6, skew: 9, opacity: 0.72 },
++  { t: 0.65, blur: 6, crop: 14, scale: 1.18, rotate: 2, skew: 4, opacity: 0.9 },
+   { t: 1.0, blur: 0, crop: 0, scale: 1, rotate: 0, skew: 0, opacity: 1 },
+ ]
+ 
+diff --git a/src/lib/hints.ts b/src/lib/hints.ts
+new file mode 100644
+index 0000000..b699870
+--- /dev/null
++++ b/src/lib/hints.ts
+@@ -0,0 +1,43 @@
++export interface LetterSlot {
++  char: string
++  guessable: boolean // letters/digits get blanked; spaces & punctuation always show
++}
++
++export function buildSlots(name: string): LetterSlot[] {
++  return name.split('').map((char) => ({ char, guessable: /[a-zA-Z0-9]/.test(char) }))
++}
++
++/**
++ * Returns the guessable slot indices in the order they'll be auto-revealed as hints,
++ * capped so at least one letter (two, for longer names) stays hidden until either a
++ * correct guess or the round times out — keeps the round from solving itself.
++ */
++export function buildHintOrder(slots: LetterSlot[]): number[] {
++  const guessableIndices = slots.map((s, i) => (s.guessable ? i : -1)).filter((i) => i >= 0)
++
++  for (let i = guessableIndices.length - 1; i > 0; i--) {
++    const j = Math.floor(Math.random() * (i + 1))
++    ;[guessableIndices[i], guessableIndices[j]] = [guessableIndices[j], guessableIndices[i]]
++  }
++
++  const keepHidden = guessableIndices.length <= 3 ? 0 : guessableIndices.length >= 8 ? 2 : 1
++  return guessableIndices.slice(0, guessableIndices.length - keepHidden)
++}
++
++/** Spreads hint reveal times across the round: first hint a bit in, last hint before the final stretch. */
++export function hintDelayMs(hintIndex: number, totalHints: number, revealMs: number): number {
++  if (totalHints <= 0) return revealMs
++  const start = revealMs * 0.18
++  const end = revealMs * 0.88
++  const span = end - start
++  return Math.round(start + (span * hintIndex) / Math.max(1, totalHints))
++}
++
++export function normalizeGuess(value: string): string {
++  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
++}
++
++export function isCorrectGuess(guess: string, brandName: string): boolean {
++  const g = normalizeGuess(guess)
++  return g.length > 0 && g === normalizeGuess(brandName)
++}
+diff --git a/src/lib/scoring.ts b/src/lib/scoring.ts
+index fb24ebb..e24c50d 100644
+--- a/src/lib/scoring.ts
++++ b/src/lib/scoring.ts
+@@ -1,5 +1,6 @@
+ const BASE_XP = 100
+ const MAX_TIME_BONUS = 100
++const MAX_HINT_BONUS = 100 // scaled by the fraction of letters still hidden when guessed
+ const PERFECT_CROP_THRESHOLD_MS = 3000 // answering within this window = Perfect Crop
+ const PERFECT_CROP_BONUS = 100
+ const STREAK_MULTIPLIER = 20
+@@ -32,3 +33,41 @@ export function computeScore({ correct, answerMs, revealMs, streakBeforeThisRoun
+   const xp = BASE_XP + timeBonus + streakBonus + perfectBonus
+   return { xp, perfectCrop, timeBonus, streakBonus }
+ }
++
++export interface HintScoreInput {
++  correct: boolean
++  hiddenLettersAtGuess: number
++  totalGuessableLetters: number
++  streakBeforeThisRound: number
++}
++
++export interface HintScoreOutput {
++  xp: number
++  perfectCrop: boolean
++  hintBonus: number
++  streakBonus: number
++}
++
++/**
++ * Scores a Scribbl-style round: the fewer letters revealed when you guess correctly,
++ * the bigger the bonus. Guessing before any letter is auto-revealed is a Perfect Crop.
++ */
++export function computeHintScore({
++  correct,
++  hiddenLettersAtGuess,
++  totalGuessableLetters,
++  streakBeforeThisRound,
++}: HintScoreInput): HintScoreOutput {
++  if (!correct) {
++    return { xp: 0, perfectCrop: false, hintBonus: 0, streakBonus: 0 }
++  }
++
++  const hiddenFraction = totalGuessableLetters > 0 ? hiddenLettersAtGuess / totalGuessableLetters : 0
++  const hintBonus = Math.round(hiddenFraction * MAX_HINT_BONUS)
++  const streakBonus = streakBeforeThisRound * STREAK_MULTIPLIER
++  const perfectCrop = hiddenLettersAtGuess >= totalGuessableLetters // guessed before any hint revealed
++  const perfectBonus = perfectCrop ? PERFECT_CROP_BONUS : 0
++
++  const xp = BASE_XP + hintBonus + streakBonus + perfectBonus
++  return { xp, perfectCrop, hintBonus, streakBonus }
++}

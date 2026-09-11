@@ -13,9 +13,9 @@ interface Keyframe {
 }
 
 const KEYFRAMES: Keyframe[] = [
-  { t: 0.0, blur: 18, crop: 30, scale: 1.3, rotate: 7, skew: 10, opacity: 0.4 },
-  { t: 0.3, blur: 12, crop: 20, scale: 1.2, rotate: 5, skew: 7, opacity: 0.65 },
-  { t: 0.6, blur: 5, crop: 10, scale: 1.08, rotate: 2, skew: 3, opacity: 0.85 },
+  { t: 0.0, blur: 22, crop: 42, scale: 1.85, rotate: 9, skew: 13, opacity: 0.55 },
+  { t: 0.35, blur: 14, crop: 30, scale: 1.55, rotate: 6, skew: 9, opacity: 0.72 },
+  { t: 0.65, blur: 6, crop: 14, scale: 1.18, rotate: 2, skew: 4, opacity: 0.9 },
   { t: 1.0, blur: 0, crop: 0, scale: 1, rotate: 0, skew: 0, opacity: 1 },
 ]
 

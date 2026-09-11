@@ -9,10 +9,20 @@ export function JoinScreen({ onBack, joinUrl }: { onBack: () => void; joinUrl?: 
           <p className="font-display text-sm sm:text-lg text-[var(--color-paper)]">THINK YOU CAN DO BETTER?</p>
           <p className="font-display text-lg sm:text-2xl mt-4 text-[var(--color-crime)]">COME BUILD WITH US.</p>
 
-          <div className="mt-8 border-2 border-dashed border-[var(--color-line)] py-8 flex flex-col items-center gap-2">
-            <div className="w-28 h-28 bg-[var(--color-paper)] flex items-center justify-center">
-              <span className="font-mono-ui text-[10px] text-[var(--color-ink)]">QR CODE</span>
-            </div>
+          <div className="mt-8 border-2 border-dashed border-[var(--color-line)] py-6 flex flex-col items-center gap-2">
+            {joinUrl ? (
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`}
+                alt="QR code to join Oh Crop!"
+                width={176}
+                height={176}
+                className="bg-[var(--color-paper)] p-2"
+              />
+            ) : (
+              <div className="w-28 h-28 bg-[var(--color-paper)] flex items-center justify-center">
+                <span className="font-mono-ui text-[10px] text-[var(--color-ink)]">QR CODE</span>
+              </div>
+            )}
             <p className="font-mono-ui text-[10px] text-[var(--color-paper)]/50">SCAN TO JOIN</p>
           </div>
 

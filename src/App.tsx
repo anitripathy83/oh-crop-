@@ -20,7 +20,7 @@ import { SoundToggle } from './components/SoundToggle'
 const ROUNDS = 10
 const IDLE_TO_ATTRACT_MS = 45000
 // Set this once the club has a sign-up link/form ready.
-const MEMBERSHIP_URL: string | undefined = undefined
+const MEMBERSHIP_URL: string | undefined = 'https://tr.ee/Yhk9yIxqgG'
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => {
