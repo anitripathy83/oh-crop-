@@ -1,0 +1,161 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 25697d8..a3a5f17 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,7 +1,7 @@
+ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+ import type { Challenge, LeaderboardEntry, RoundResult, Screen } from './types'
+ import { buildSession } from './lib/session'
+-import { getLeaderboard, submitScore, getRank } from './lib/leaderboard'
++import { getLeaderboard, submitScore, getRank, downloadContactsCsv } from './lib/leaderboard'
+ import { setMuted, isMuted, unlockAudio, playSfx } from './lib/audio'
+ import { useSoundtrack } from './hooks/useSoundtrack'
+ import { unlockSoundtrack } from './lib/soundtrack'
+@@ -39,6 +39,8 @@ function usePrefersReducedMotion() {
+ export default function App() {
+   const [screen, setScreen] = useState<Screen>('landing')
+   const [playerName, setPlayerName] = useState('')
++  const [playerBitsId, setPlayerBitsId] = useState('')
++  const [playerPhone, setPlayerPhone] = useState('')
+   const [session, setSession] = useState<Challenge[]>(() => buildSession(ROUNDS))
+   const [results, setResults] = useState<RoundResult[]>([])
+   const [lastEntryId, setLastEntryId] = useState<string | null>(null)
+@@ -72,6 +74,20 @@ export default function App() {
+ 
+   const totalXp = useMemo(() => results.reduce((sum, r) => sum + r.xp, 0), [results])
+ 
++  // Hidden admin shortcut: Ctrl+Shift+E downloads a CSV of every recorded entry
++  // (name, BITS ID, phone, score). Deliberately not a visible button — this data
++  // includes phone numbers and shouldn't be one tap away for stall visitors.
++  useEffect(() => {
++    function handleExportShortcut(e: KeyboardEvent) {
++      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
++        e.preventDefault()
++        downloadContactsCsv()
++      }
++    }
++    window.addEventListener('keydown', handleExportShortcut)
++    return () => window.removeEventListener('keydown', handleExportShortcut)
++  }, [])
++
+   function goPlay() {
+     unlockAudio()
+     unlockSoundtrack()
+@@ -79,10 +95,12 @@ export default function App() {
+     setScreen('name')
+   }
+ 
+-  function onNameSubmit(name: string) {
++  function onNameSubmit(name: string, bitsId: string, phone: string) {
+     unlockAudio()
+     unlockSoundtrack()
+     setPlayerName(name)
++    setPlayerBitsId(bitsId)
++    setPlayerPhone(phone)
+     playSfx('select')
+     setScreen('pregame')
+   }
+@@ -108,7 +126,7 @@ export default function App() {
+       bestStreak = Math.max(bestStreak, running)
+     }
+ 
+-    const entry = submitScore({ name: playerName, xp, accuracy, perfectCrops, bestStreak })
++    const entry = submitScore({ name: playerName, bitsId: playerBitsId, phone: playerPhone, xp, accuracy, perfectCrops, bestStreak })
+     setLastEntryId(entry.id)
+     refreshLeaderboard()
+     playSfx('gameover')
+diff --git a/src/lib/leaderboard.ts b/src/lib/leaderboard.ts
+index e9e9f32..fddeb4d 100644
+--- a/src/lib/leaderboard.ts
++++ b/src/lib/leaderboard.ts
+@@ -3,6 +3,8 @@ import type { LeaderboardEntry } from '../types'
+ const STORAGE_KEY = 'ohcrop_leaderboard_v1'
+ const MAX_ENTRIES = 200
+ const MAX_NAME_LENGTH = 18
++const MAX_BITS_ID_LENGTH = 20
++const MAX_PHONE_LENGTH = 15
+ 
+ /**
+  * Prototype persistence: localStorage, scoped to this device/browser.
+@@ -11,6 +13,9 @@ const MAX_NAME_LENGTH = 18
+  * module's storage calls with a shared backend (Supabase/Firebase/a small API) so all
+  * stations share one leaderboard, and move score validation server-side — a client-only
+  * leaderboard should never be trusted for a public/competitive display as-is.
++ *
++ * bitsId/phone are collected for the club's own membership follow-up — they are never
++ * rendered on the public Leaderboard screen, only stored alongside the score record.
+  */
+ 
+ export function sanitizeName(raw: string): string {
+@@ -19,6 +24,20 @@ export function sanitizeName(raw: string): string {
+   return trimmed.length > 0 ? trimmed : 'DESIGNER'
+ }
+ 
++export function sanitizeBitsId(raw: string): string {
++  return raw
++    .replace(/<[^>]*>/g, '')
++    .replace(/[^a-zA-Z0-9]/g, '')
++    .slice(0, MAX_BITS_ID_LENGTH)
++}
++
++export function sanitizePhone(raw: string): string {
++  return raw
++    .replace(/<[^>]*>/g, '')
++    .replace(/[^0-9+]/g, '')
++    .slice(0, MAX_PHONE_LENGTH)
++}
++
+ function readAll(): LeaderboardEntry[] {
+   try {
+     const raw = localStorage.getItem(STORAGE_KEY)
+@@ -44,6 +63,8 @@ export function submitScore(entry: Omit<LeaderboardEntry, 'id' | 'timestamp'>):
+   const record: LeaderboardEntry = {
+     ...entry,
+     name: sanitizeName(entry.name),
++    bitsId: entry.bitsId ? sanitizeBitsId(entry.bitsId) : undefined,
++    phone: entry.phone ? sanitizePhone(entry.phone) : undefined,
+     xp: Math.max(0, Math.round(entry.xp)),
+     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+     timestamp: Date.now(),
+@@ -66,3 +87,41 @@ export function getRank(entryId: string): number {
+ export function resetLeaderboard() {
+   writeAll([])
+ }
++
++function csvEscape(value: string): string {
++  if (/[",\n]/.test(value)) {
++    return `"${value.replace(/"/g, '""')}"`
++  }
++  return value
++}
++
++/** Builds a CSV of every recorded entry, including bitsId/phone (never shown in-app). */
++export function buildContactsCsv(): string {
++  const entries = getLeaderboard()
++  const header = ['Name', 'BITS ID', 'Phone', 'XP', 'Accuracy %', 'Perfect Crops', 'Best Streak', 'Timestamp']
++  const rows = entries.map((e) => [
++    e.name,
++    e.bitsId ?? '',
++    e.phone ?? '',
++    String(e.xp),
++    String(e.accuracy),
++    String(e.perfectCrops),
++    String(e.bestStreak),
++    new Date(e.timestamp).toISOString(),
++  ])
++  return [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n')
++}
++
++/** Triggers a browser download of the CSV — call only from an explicit admin action. */
++export function downloadContactsCsv() {
++  const csv = buildContactsCsv()
++  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
++  const url = URL.createObjectURL(blob)
++  const a = document.createElement('a')
++  a.href = url
++  a.download = `ohcrop-entries-${new Date().toISOString().slice(0, 10)}.csv`
++  document.body.appendChild(a)
++  a.click()
++  document.body.removeChild(a)
++  URL.revokeObjectURL(url)
++}

@@ -87,3 +87,41 @@ export function getRank(entryId: string): number {
 export function resetLeaderboard() {
   writeAll([])
 }
+
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`
+  }
+  return value
+}
+
+/** Builds a CSV of every recorded entry, including bitsId/phone (never shown in-app). */
+export function buildContactsCsv(): string {
+  const entries = getLeaderboard()
+  const header = ['Name', 'BITS ID', 'Phone', 'XP', 'Accuracy %', 'Perfect Crops', 'Best Streak', 'Timestamp']
+  const rows = entries.map((e) => [
+    e.name,
+    e.bitsId ?? '',
+    e.phone ?? '',
+    String(e.xp),
+    String(e.accuracy),
+    String(e.perfectCrops),
+    String(e.bestStreak),
+    new Date(e.timestamp).toISOString(),
+  ])
+  return [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n')
+}
+
+/** Triggers a browser download of the CSV — call only from an explicit admin action. */
+export function downloadContactsCsv() {
+  const csv = buildContactsCsv()
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ohcrop-entries-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

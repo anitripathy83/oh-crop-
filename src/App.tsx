@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Challenge, LeaderboardEntry, RoundResult, Screen } from './types'
 import { buildSession } from './lib/session'
-import { getLeaderboard, submitScore, getRank } from './lib/leaderboard'
+import { getLeaderboard, submitScore, getRank, downloadContactsCsv } from './lib/leaderboard'
 import { setMuted, isMuted, unlockAudio, playSfx } from './lib/audio'
 import { useSoundtrack } from './hooks/useSoundtrack'
 import { unlockSoundtrack } from './lib/soundtrack'
@@ -73,6 +73,20 @@ export default function App() {
   }, [screen])
 
   const totalXp = useMemo(() => results.reduce((sum, r) => sum + r.xp, 0), [results])
+  
+  // Hidden admin shortcut: Ctrl+Shift+E downloads a CSV of every recorded entry
+  // (name, BITS ID, phone, score). Deliberately not a visible button — this data
+  // includes phone numbers and shouldn't be one tap away for stall visitors.
+  useEffect(() => {
+    function handleExportShortcut(e: KeyboardEvent) {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        downloadContactsCsv()
+      }
+    }
+    window.addEventListener('keydown', handleExportShortcut)
+    return () => window.removeEventListener('keydown', handleExportShortcut)
+  }, [])
 
   function goPlay() {
     unlockAudio()
