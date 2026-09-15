@@ -44,6 +44,8 @@ export interface RoundResult {
 export interface LeaderboardEntry {
   id: string
   name: string
+  bitsId?: string
+  phone?: string
   xp: number
   accuracy: number
   perfectCrops: number

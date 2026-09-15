@@ -1,0 +1,214 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 25697d8..9157258 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -39,6 +39,8 @@ function usePrefersReducedMotion() {
+ export default function App() {
+   const [screen, setScreen] = useState<Screen>('landing')
+   const [playerName, setPlayerName] = useState('')
++  const [playerBitsId, setPlayerBitsId] = useState('')
++  const [playerPhone, setPlayerPhone] = useState('')
+   const [session, setSession] = useState<Challenge[]>(() => buildSession(ROUNDS))
+   const [results, setResults] = useState<RoundResult[]>([])
+   const [lastEntryId, setLastEntryId] = useState<string | null>(null)
+@@ -79,10 +81,12 @@ export default function App() {
+     setScreen('name')
+   }
+ 
+-  function onNameSubmit(name: string) {
++  function onNameSubmit(name: string, bitsId: string, phone: string) {
+     unlockAudio()
+     unlockSoundtrack()
+     setPlayerName(name)
++    setPlayerBitsId(bitsId)
++    setPlayerPhone(phone)
+     playSfx('select')
+     setScreen('pregame')
+   }
+@@ -108,7 +112,7 @@ export default function App() {
+       bestStreak = Math.max(bestStreak, running)
+     }
+ 
+-    const entry = submitScore({ name: playerName, xp, accuracy, perfectCrops, bestStreak })
++    const entry = submitScore({ name: playerName, bitsId: playerBitsId, phone: playerPhone, xp, accuracy, perfectCrops, bestStreak })
+     setLastEntryId(entry.id)
+     refreshLeaderboard()
+     playSfx('gameover')
+diff --git a/src/components/NameEntry.tsx b/src/components/NameEntry.tsx
+index 6b04558..e88c269 100644
+--- a/src/components/NameEntry.tsx
++++ b/src/components/NameEntry.tsx
+@@ -1,22 +1,28 @@
+ import { useState } from 'react'
+ import { PixelButton } from './PixelButton'
+ import { CropFrame } from './CropFrame'
+-import { sanitizeName } from '../lib/leaderboard'
++import { sanitizeName, sanitizeBitsId, sanitizePhone } from '../lib/leaderboard'
+ 
+ const MAX_LENGTH = 18
++const MAX_BITS_ID_LENGTH = 20
++const MAX_PHONE_LENGTH = 15
+ 
+ export function NameEntry({
+   onSubmit,
+   onLeaderboard,
+ }: {
+-  onSubmit: (name: string) => void
++  onSubmit: (name: string, bitsId: string, phone: string) => void
+   onLeaderboard: () => void
+ }) {
+   const [name, setName] = useState('')
++  const [bitsId, setBitsId] = useState('')
++  const [phone, setPhone] = useState('')
++
++  const canSubmit = name.trim().length > 0 && bitsId.trim().length > 0 && phone.trim().length > 0
+ 
+   function submit() {
+-    const clean = sanitizeName(name)
+-    onSubmit(clean)
++    if (!canSubmit) return
++    onSubmit(sanitizeName(name), sanitizeBitsId(bitsId), sanitizePhone(phone))
+   }
+ 
+   return (
+@@ -38,19 +44,46 @@ export function NameEntry({
+             autoFocus
+             value={name}
+             onChange={(e) => setName(e.target.value.slice(0, MAX_LENGTH))}
+-            onKeyDown={(e) => {
+-              if (e.key === 'Enter' && name.trim().length > 0) submit()
+-            }}
+             placeholder="YOUR NAME"
+             maxLength={MAX_LENGTH}
+             className="w-full mt-2 bg-[var(--color-ink)] border-2 border-[var(--color-line)] focus:border-[var(--color-xp)] outline-none px-4 py-3 font-mono-ui text-base text-[var(--color-paper)] placeholder:text-[var(--color-paper)]/30 uppercase"
+           />
+-          <p className="font-mono-ui text-[10px] mt-2 self-end text-[var(--color-paper)]/40">
+-            {name.length}/{MAX_LENGTH}
++
++          <label htmlFor="bits-id" className="font-mono-ui text-[10px] tracking-[0.2em] mt-5 self-start text-[var(--color-xp)]">
++            BITS ID NUMBER
++          </label>
++          <input
++            id="bits-id"
++            value={bitsId}
++            onChange={(e) => setBitsId(e.target.value.slice(0, MAX_BITS_ID_LENGTH))}
++            placeholder="2024A7PS0000U"
++            maxLength={MAX_BITS_ID_LENGTH}
++            className="w-full mt-2 bg-[var(--color-ink)] border-2 border-[var(--color-line)] focus:border-[var(--color-xp)] outline-none px-4 py-3 font-mono-ui text-base text-[var(--color-paper)] placeholder:text-[var(--color-paper)]/30 uppercase"
++          />
++
++          <label htmlFor="phone" className="font-mono-ui text-[10px] tracking-[0.2em] mt-5 self-start text-[var(--color-xp)]">
++            PHONE NUMBER
++          </label>
++          <input
++            id="phone"
++            type="tel"
++            inputMode="tel"
++            value={phone}
++            onChange={(e) => setPhone(e.target.value.slice(0, MAX_PHONE_LENGTH))}
++            onKeyDown={(e) => {
++              if (e.key === 'Enter' && canSubmit) submit()
++            }}
++            placeholder="+91 90000 00000"
++            maxLength={MAX_PHONE_LENGTH}
++            className="w-full mt-2 bg-[var(--color-ink)] border-2 border-[var(--color-line)] focus:border-[var(--color-xp)] outline-none px-4 py-3 font-mono-ui text-base text-[var(--color-paper)] placeholder:text-[var(--color-paper)]/30"
++          />
++
++          <p className="font-mono-ui text-[9px] mt-3 text-[var(--color-paper)]/40 text-center">
++            Used only for the club's own membership follow-up — never shown on the leaderboard.
+           </p>
+ 
+-          <div className="w-full flex flex-col gap-3 mt-8">
+-            <PixelButton onClick={submit} disabled={name.trim().length === 0} fullWidth>
++          <div className="w-full flex flex-col gap-3 mt-6">
++            <PixelButton onClick={submit} disabled={!canSubmit} fullWidth>
+               ▶ Enter the Design Village
+             </PixelButton>
+             <PixelButton onClick={onLeaderboard} variant="ghost" fullWidth>
+diff --git a/src/lib/leaderboard.ts b/src/lib/leaderboard.ts
+index e9e9f32..30b8ec2 100644
+--- a/src/lib/leaderboard.ts
++++ b/src/lib/leaderboard.ts
+@@ -3,6 +3,8 @@ import type { LeaderboardEntry } from '../types'
+ const STORAGE_KEY = 'ohcrop_leaderboard_v1'
+ const MAX_ENTRIES = 200
+ const MAX_NAME_LENGTH = 18
++const MAX_BITS_ID_LENGTH = 20
++const MAX_PHONE_LENGTH = 15
+ 
+ /**
+  * Prototype persistence: localStorage, scoped to this device/browser.
+@@ -11,6 +13,9 @@ const MAX_NAME_LENGTH = 18
+  * module's storage calls with a shared backend (Supabase/Firebase/a small API) so all
+  * stations share one leaderboard, and move score validation server-side — a client-only
+  * leaderboard should never be trusted for a public/competitive display as-is.
++ *
++ * bitsId/phone are collected for the club's own membership follow-up — they are never
++ * rendered on the public Leaderboard screen, only stored alongside the score record.
+  */
+ 
+ export function sanitizeName(raw: string): string {
+@@ -19,6 +24,20 @@ export function sanitizeName(raw: string): string {
+   return trimmed.length > 0 ? trimmed : 'DESIGNER'
+ }
+ 
++export function sanitizeBitsId(raw: string): string {
++  return raw
++    .replace(/<[^>]*>/g, '')
++    .replace(/[^a-zA-Z0-9]/g, '')
++    .slice(0, MAX_BITS_ID_LENGTH)
++}
++
++export function sanitizePhone(raw: string): string {
++  return raw
++    .replace(/<[^>]*>/g, '')
++    .replace(/[^0-9+]/g, '')
++    .slice(0, MAX_PHONE_LENGTH)
++}
++
+ function readAll(): LeaderboardEntry[] {
+   try {
+     const raw = localStorage.getItem(STORAGE_KEY)
+@@ -44,6 +63,8 @@ export function submitScore(entry: Omit<LeaderboardEntry, 'id' | 'timestamp'>):
+   const record: LeaderboardEntry = {
+     ...entry,
+     name: sanitizeName(entry.name),
++    bitsId: entry.bitsId ? sanitizeBitsId(entry.bitsId) : undefined,
++    phone: entry.phone ? sanitizePhone(entry.phone) : undefined,
+     xp: Math.max(0, Math.round(entry.xp)),
+     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+     timestamp: Date.now(),
+diff --git a/src/lib/session.ts b/src/lib/session.ts
+index 54f6645..2a4a589 100644
+--- a/src/lib/session.ts
++++ b/src/lib/session.ts
+@@ -47,12 +47,12 @@ export function buildSession(rounds = 10): Challenge[] {
+ export function difficultyTiming(difficulty: Difficulty): { revealMs: number; label: string } {
+   switch (difficulty) {
+     case 'easy':
+-      return { revealMs: 7000, label: 'EASY' }
++      return { revealMs: 12000, label: 'EASY' }
+     case 'medium':
+-      return { revealMs: 8500, label: 'MEDIUM' }
++      return { revealMs: 14000, label: 'MEDIUM' }
+     case 'hard':
+-      return { revealMs: 9500, label: 'HARD' }
++      return { revealMs: 16000, label: 'HARD' }
+     case 'legendary':
+-      return { revealMs: 11000, label: 'LEGENDARY' }
++      return { revealMs: 19000, label: 'LEGENDARY' }
+   }
+ }
+diff --git a/src/types.ts b/src/types.ts
+index b51a547..32e3371 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -44,6 +44,8 @@ export interface RoundResult {
+ export interface LeaderboardEntry {
+   id: string
+   name: string
++  bitsId?: string
++  phone?: string
+   xp: number
+   accuracy: number
+   perfectCrops: number

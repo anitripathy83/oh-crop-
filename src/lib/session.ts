@@ -47,12 +47,12 @@ export function buildSession(rounds = 10): Challenge[] {
 export function difficultyTiming(difficulty: Difficulty): { revealMs: number; label: string } {
   switch (difficulty) {
     case 'easy':
-      return { revealMs: 7000, label: 'EASY' }
+      return { revealMs: 12000, label: 'EASY' }
     case 'medium':
-      return { revealMs: 8500, label: 'MEDIUM' }
+      return { revealMs: 14000, label: 'MEDIUM' }
     case 'hard':
-      return { revealMs: 9500, label: 'HARD' }
+      return { revealMs: 16000, label: 'HARD' }
     case 'legendary':
-      return { revealMs: 11000, label: 'LEGENDARY' }
+      return { revealMs: 19000, label: 'LEGENDARY' }
   }
 }

@@ -39,6 +39,8 @@ function usePrefersReducedMotion() {
 export default function App() {
   const [screen, setScreen] = useState<Screen>('landing')
   const [playerName, setPlayerName] = useState('')
+  const [playerBitsId, setPlayerBitsId] = useState('')
+  const [playerPhone, setPlayerPhone] = useState('')
   const [session, setSession] = useState<Challenge[]>(() => buildSession(ROUNDS))
   const [results, setResults] = useState<RoundResult[]>([])
   const [lastEntryId, setLastEntryId] = useState<string | null>(null)
@@ -79,10 +81,12 @@ export default function App() {
     setScreen('name')
   }
 
-  function onNameSubmit(name: string) {
+  function onNameSubmit(name: string, bitsId: string, phone: string) {
     unlockAudio()
     unlockSoundtrack()
     setPlayerName(name)
+    setPlayerBitsId(bitsId)
+    setPlayerPhone(phone)
     playSfx('select')
     setScreen('pregame')
   }
@@ -108,7 +112,7 @@ export default function App() {
       bestStreak = Math.max(bestStreak, running)
     }
 
-    const entry = submitScore({ name: playerName, xp, accuracy, perfectCrops, bestStreak })
+    const entry = submitScore({ name: playerName, bitsId: playerBitsId, phone: playerPhone, xp, accuracy, perfectCrops, bestStreak })
     setLastEntryId(entry.id)
     refreshLeaderboard()
     playSfx('gameover')
