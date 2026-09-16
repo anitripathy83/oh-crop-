@@ -125,3 +125,24 @@ export function downloadContactsCsv() {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
+/** Triggers a browser download of every recorded entry as an .xlsx workbook — admin action only. */
+export async function downloadContactsXlsx() {
+  const entries = getLeaderboard()
+  const XLSX = await import('xlsx')
+  const sheet = XLSX.utils.json_to_sheet(
+    entries.map((e) => ({
+      Name: e.name,
+      'BITS ID': e.bitsId ?? '',
+      Phone: e.phone ?? '',
+      XP: e.xp,
+      'Accuracy %': e.accuracy,
+      'Perfect Crops': e.perfectCrops,
+      'Best Streak': e.bestStreak,
+      Timestamp: new Date(e.timestamp).toISOString(),
+    }))
+  )
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Entries')
+  XLSX.writeFile(workbook, `ohcrop-entries-${new Date().toISOString().slice(0, 10)}.xlsx`)
+}

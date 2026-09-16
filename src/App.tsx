@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Challenge, LeaderboardEntry, RoundResult, Screen } from './types'
 import { buildSession } from './lib/session'
-import { getLeaderboard, submitScore, getRank, downloadContactsCsv } from './lib/leaderboard'
+import { getLeaderboard, submitScore, getRank, downloadContactsXlsx } from './lib/leaderboard'
 import { setMuted, isMuted, unlockAudio, playSfx } from './lib/audio'
 import { useSoundtrack } from './hooks/useSoundtrack'
 import { unlockSoundtrack } from './lib/soundtrack'
@@ -17,7 +17,7 @@ import { JoinScreen } from './components/JoinScreen'
 import { AttractMode } from './components/AttractMode'
 import { SoundToggle } from './components/SoundToggle'
 
-const ROUNDS = 10
+const ROUNDS = 8
 const IDLE_TO_ATTRACT_MS = 45000
 // Set this once the club has a sign-up link/form ready.
 const MEMBERSHIP_URL: string | undefined = 'https://tr.ee/Yhk9yIxqgG'
@@ -81,7 +81,7 @@ export default function App() {
     function handleExportShortcut(e: KeyboardEvent) {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
         e.preventDefault()
-        downloadContactsCsv()
+          downloadContactsXlsx()
       }
     }
     window.addEventListener('keydown', handleExportShortcut)

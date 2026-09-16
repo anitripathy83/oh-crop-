@@ -10,8 +10,6 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-const DIFFICULTY_ORDER: Difficulty[] = ['easy', 'easy', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'hard', 'legendary']
-
 /** Builds distractor options from the same category first, falling back to the full pool. */
 function pickDistractors(target: Brand, pool: Brand[], count: number): Brand[] {
   const sameCategory = pool.filter((b) => b.id !== target.id && b.category === target.category)
@@ -23,21 +21,21 @@ function pickDistractors(target: Brand, pool: Brand[], count: number): Brand[] {
   return picked
 }
 
-export function buildSession(rounds = 10): Challenge[] {
-  const pool = shuffle(BRANDS)
-  const chosen = pool.slice(0, Math.min(rounds, pool.length))
+// Fixed 8-round structure: rounds 1-3 easy, 4-6 medium, 7-8 hard.
+const ROUND_DIFFICULTY_PLAN: Difficulty[] = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard']
 
-  // Loosely align chosen brands to a difficulty curve (easy -> legendary) by re-sorting
-  // within what's available, without forcing exact matches (keeps things unpredictable).
-  const curved = [...chosen].sort((a, b) => {
-    const order: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2, legendary: 3 }
-    const target = DIFFICULTY_ORDER
-    const ai = target.indexOf(a.difficulty)
-    const bi = target.indexOf(b.difficulty)
-    return order[a.difficulty] - order[b.difficulty] || ai - bi
-  })
+export function buildSession(rounds = ROUND_DIFFICULTY_PLAN.length): Challenge[] {
+  const plan = ROUND_DIFFICULTY_PLAN.slice(0, rounds)
 
-  return curved.map((brand) => {
+  const chosen: Brand[] = []
+  for (const difficulty of plan) {
+    const pool = BRANDS.filter((b) => b.difficulty === difficulty && !chosen.some((c) => c.id === b.id))
+    const fallbackPool = BRANDS.filter((b) => !chosen.some((c) => c.id === b.id))
+    const picked = shuffle(pool.length > 0 ? pool : fallbackPool)[0]
+    chosen.push(picked)
+  }
+
+  return chosen.map((brand) => {
     const distractors = pickDistractors(brand, BRANDS, 3)
     const options = shuffle([brand, ...distractors])
     return { brand, options }
@@ -47,12 +45,12 @@ export function buildSession(rounds = 10): Challenge[] {
 export function difficultyTiming(difficulty: Difficulty): { revealMs: number; label: string } {
   switch (difficulty) {
     case 'easy':
-      return { revealMs: 12000, label: 'EASY' }
+      return { revealMs: 7000, label: 'EASY' }
     case 'medium':
-      return { revealMs: 14000, label: 'MEDIUM' }
+      return { revealMs: 9000, label: 'MEDIUM' }
     case 'hard':
-      return { revealMs: 16000, label: 'HARD' }
+      return { revealMs: 10000, label: 'HARD' }
     case 'legendary':
-      return { revealMs: 19000, label: 'LEGENDARY' }
+      return { revealMs: 10000, label: 'LEGENDARY' }
   }
 }
