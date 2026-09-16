@@ -13,10 +13,6 @@ import { playSfx } from '../lib/audio'
 
 type AnswerState = 'idle' | 'correct' | 'timeout'
 
-// Time's technically up, but we hold the last hidden letter(s) back this long before
-// locking in the answer — gives people a beat to still land a guess (per team feedback).
-const GRACE_PERIOD_MS = 2800
-
 export function GameScreen({
   playerName,
   challenges,
@@ -45,8 +41,6 @@ export function GameScreen({
   const roundStartRef = useRef<number>(performance.now())
   const timeoutHandleRef = useRef<number | null>(null)
   const hintHandlesRef = useRef<number[]>([])
-  const graceHandleRef = useRef<number | null>(null)
-  const advanceHandleRef = useRef<number | null>(null)
 
   const challenge = challenges[roundIdx]
   const { revealMs, label: difficultyLabel } = difficultyTiming(challenge.brand.difficulty)
@@ -56,8 +50,6 @@ export function GameScreen({
 
   function clearAllTimers() {
     if (timeoutHandleRef.current) window.clearTimeout(timeoutHandleRef.current)
-    if (graceHandleRef.current) window.clearTimeout(graceHandleRef.current)
-    if (advanceHandleRef.current) window.clearTimeout(advanceHandleRef.current)
     hintHandlesRef.current.forEach((h) => window.clearTimeout(h))
     hintHandlesRef.current = []
   }
@@ -115,28 +107,22 @@ export function GameScreen({
   function handleTimeout() {
     clearAllTimers()
     setRunning(false)
-    playSfx('tick')
-    // Grace window: time's technically up, but the last hidden letter(s) stay hidden
-    // and guesses are still accepted for a beat, instead of instantly flashing the
-    // full answer — gives people a moment to still land the guess.
-    graceHandleRef.current = window.setTimeout(() => {
-      setRevealed(true)
-      setRevealedIndices(new Set(slots.map((_, i) => i)))
-      setAnswerState('timeout')
-      setStreak(0)
-      playSfx('crime')
-      setCrimeLine('TOO SLOW. THE DEADLINE PASSED.')
-      commitResult({
-        brandId: challenge.brand.id,
-        brandName: challenge.brand.name,
-        correct: false,
-        timedOut: true,
-        answerMs: revealMs,
-        xp: 0,
-        perfectCrop: false,
-      })
-      advanceHandleRef.current = window.setTimeout(advance, 1800)
-    }, GRACE_PERIOD_MS)
+    setRevealed(true)
+    setRevealedIndices(new Set(slots.map((_, i) => i)))
+    setAnswerState('timeout')
+    setStreak(0)
+    playSfx('crime')
+    setCrimeLine('TOO SLOW. THE DEADLINE PASSED.')
+    commitResult({
+      brandId: challenge.brand.id,
+      brandName: challenge.brand.name,
+      correct: false,
+      timedOut: true,
+      answerMs: revealMs,
+      xp: 0,
+      perfectCrop: false,
+    })
+    window.setTimeout(advance, 1800)
   }
 
   function handleGuess(value: string) {
